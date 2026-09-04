@@ -21,8 +21,11 @@ export async function findUserByPin(pin: string) {
   }
 }
 
-// Daftar nama & email dari web utama (Supabase) - dipakai saat pendaftaran PIN baru
-export async function getDirectoryFromSupabase(search: string = "") {
+// Daftar nama & email dari web utama (Supabase) - dipakai saat pendaftaran PIN baru.
+// Default: nama yang sudah punya PIN aktif disembunyikan (biar tidak ada yang "mencuri" akun orang lain
+// dengan bikin PIN baru atas nama mereka). Mode "lupa PIN" (includeRegistered) menampilkan semuanya lagi,
+// supaya pemilik akun yang beneran lupa PIN bisa cari namanya dan set PIN baru lewat registerPin (upsert by email).
+export async function getDirectoryFromSupabase(search: string = "", includeRegistered: boolean = false) {
   try {
     let query = supabaseAdmin.from("users").select("name, email").limit(20);
     if (search.trim()) {
@@ -32,7 +35,19 @@ export async function getDirectoryFromSupabase(search: string = "") {
     if (error) {
       return { data: [], error: error.message };
     }
-    return { data: data || [], error: null };
+
+    let results = data || [];
+
+    if (!includeRegistered && results.length > 0) {
+      const registeredUsers = await prisma.user.findMany({
+        where: { pin: { not: null } },
+        select: { email: true },
+      });
+      const registeredEmails = new Set(registeredUsers.map((u) => u.email.toLowerCase()));
+      results = results.filter((entry) => !registeredEmails.has(entry.email.toLowerCase()));
+    }
+
+    return { data: results, error: null };
   } catch (error: any) {
     return { data: [], error: error.message || "Gagal mengambil daftar nama dari Supabase." };
   }

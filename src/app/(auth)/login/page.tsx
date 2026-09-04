@@ -30,6 +30,7 @@ export default function PinLoginPage() {
   const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [isForgotPin, setIsForgotPin] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -38,17 +39,18 @@ export default function PinLoginPage() {
     inputRefs.current[0]?.focus();
   }, []);
 
-  // Cari nama & email dari web utama (Supabase) saat user mengetik
+  // Cari nama & email dari web utama (Supabase) saat user mengetik.
+  // Mode normal: sembunyikan nama yang sudah punya PIN aktif. Mode "lupa PIN": tampilkan semua.
   useEffect(() => {
     if (step !== "register") return;
     const timer = setTimeout(async () => {
       setIsSearching(true);
-      const res = await getDirectoryFromSupabase(search);
+      const res = await getDirectoryFromSupabase(search, isForgotPin);
       setDirectory(res.data as DirectoryEntry[]);
       setIsSearching(false);
     }, 350);
     return () => clearTimeout(timer);
-  }, [search, step]);
+  }, [search, step, isForgotPin]);
 
   const fullPin = pin.join("");
 
@@ -162,6 +164,7 @@ export default function PinLoginPage() {
     setSearch("");
     setDirectory([]);
     setShowManualForm(false);
+    setIsForgotPin(false);
     setName("");
     setEmail("");
     setErrorMsg("");
@@ -183,7 +186,9 @@ export default function PinLoginPage() {
           <p className="text-xs text-[#6B6B73] max-w-xs mx-auto">
             {step === "pin"
               ? "Tanpa akun & password. Cukup masukkan PIN 6 digit Anda untuk mengakses platform pengajuan modal."
-              : "Ini pertama kalinya PIN ini dipakai. Pilih nama Anda, atau daftarkan nama & email baru."}
+              : isForgotPin
+                ? "Cari nama Anda, lalu PIN yang baru saja Anda masukkan akan menggantikan PIN lama Anda."
+                : "Ini pertama kalinya PIN ini dipakai. Pilih nama Anda, atau daftarkan nama & email baru."}
           </p>
         </div>
 
@@ -345,14 +350,30 @@ export default function PinLoginPage() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowManualForm(true)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-[#D1D1D6] py-2 text-xs font-semibold text-[#241B3A] hover:bg-[#F8F9FA] cursor-pointer"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Nama saya tidak ada / buat nama baru
-                </button>
+                {!isForgotPin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowManualForm(true)}
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-[#D1D1D6] py-2 text-xs font-semibold text-[#241B3A] hover:bg-[#F8F9FA] cursor-pointer"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Nama saya tidak ada / buat nama baru
+                  </button>
+                )}
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPin((v) => !v);
+                      setSearch("");
+                      setDirectory([]);
+                    }}
+                    className="text-[11px] font-semibold text-[#6B6B73] hover:text-[#241B3A] cursor-pointer underline"
+                  >
+                    {isForgotPin ? "Batal, ini PIN baru" : "Nama saya tidak muncul? Mungkin sudah punya PIN — lupa PIN?"}
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleRegister} className="space-y-3 text-xs">
@@ -403,7 +424,7 @@ export default function PinLoginPage() {
                     disabled={isRegistering}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-[#241B3A] hover:bg-[#1B142C] py-2 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    {isRegistering ? "Mendaftarkan..." : "Daftarkan PIN Ini"}
+                    {isRegistering ? "Menyimpan..." : isForgotPin ? "Ganti PIN Lama dengan Ini" : "Daftarkan PIN Ini"}
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
