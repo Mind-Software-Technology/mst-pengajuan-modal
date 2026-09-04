@@ -55,6 +55,7 @@ model User {
 
   password      String?
   role          Role      @default(TEAM_MEMBER)
+  pin           String?   @unique
 
   projects      ProjectTeam[]
   expenses      Expense[] @relation("ExpenseSubmitter")

@@ -16,6 +16,45 @@ export async function getExpenses() {
   }
 }
 
+export async function getDashboardStats() {
+  const [totalExpenseResult, approvedExpenseResult, pendingExpenseResult, recentExpenses, countApproved, countPending, countRejected] = await Promise.all([
+    prisma.expense.aggregate({ _sum: { amount: true } }),
+    prisma.expense.aggregate({
+      _sum: { amount: true },
+      where: { status: { in: ["APPROVED_FINANCE", "APPROVED_FOUNDER"] } }
+    }),
+    prisma.expense.aggregate({
+      _sum: { amount: true },
+      where: { status: "PENDING" }
+    }),
+    prisma.expense.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: { submitter: true }
+    }),
+    prisma.expense.count({ where: { status: { in: ["APPROVED_FINANCE", "APPROVED_FOUNDER"] } } }),
+    prisma.expense.count({ where: { status: "PENDING" } }),
+    prisma.expense.count({ where: { status: "REJECTED" } }),
+  ]);
+
+  return {
+    totalPengajuan: Number(totalExpenseResult._sum.amount || 0),
+    totalDisetujui: Number(approvedExpenseResult._sum.amount || 0),
+    totalPending: Number(pendingExpenseResult._sum.amount || 0),
+    countApproved,
+    countPending,
+    countRejected,
+    countTotal: countApproved + countPending + countRejected,
+    recentExpenses: recentExpenses.map((e) => ({
+      id: e.id,
+      title: e.title,
+      amount: Number(e.amount),
+      status: e.status,
+      submitter: { name: e.submitter.name },
+    })),
+  };
+}
+
 export async function createExpense(input: ExpenseInput) {
   try {
     const validatedData = expenseSchema.parse(input);
