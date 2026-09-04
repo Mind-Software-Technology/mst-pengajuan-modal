@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  FOUNDER
+  FINANCE_MANAGER
+  PROJECT_MANAGER
+  TEAM_MEMBER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ON_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED_FINANCE
+  APPROVED_FOUNDER
+  REJECTED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum DebtStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+
+  password      String?
+  role          Role      @default(TEAM_MEMBER)
+
+  projects      ProjectTeam[]
+  expenses      Expense[] @relation("ExpenseSubmitter")
+  debts         Debt[]    @relation("DebtSubmitter")
+  auditLogs     AuditLog[]
+  payrolls      Payroll[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}
+
+model Client {
+  id            String    @id @default(cuid())
+  name          String
+  company       String?
+  email         String?
+  phone         String?
+  address       String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  projects      Project[]
+}
+
+model Project {
+  id            String    @id @default(cuid())
+  name          String
+  clientId      String
+  client        Client    @relation(fields: [clientId], references: [id])
+  contractValue Decimal
+  estimatedCost Decimal
+  deadline      DateTime
+  status        ProjectStatus @default(PLANNING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  teamMembers   ProjectTeam[]
+  incomes       Income[]
+  expenses      Expense[]
+  debts         Debt[]
+  quotations    Quotation[]
+  invoices      Invoice[]
+}
+
+model ProjectTeam {
+  id            String    @id @default(cuid())
+  projectId     String
+  userId        String
+  project       Project   @relation(fields: [projectId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+  role          String? 
+  assignedAt    DateTime  @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Income {
+  id            String    @id @default(cuid())
+  title         String
+  date          DateTime
+  amount        Decimal
+  category      String
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id])
+  source        String
+  description   String?
+  receiptUrl    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Expense {
+  id            String    @id @default(cuid())
+  title         String
+  date          DateTime
+  amount        Decimal
+  category      String
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id])
+  submitterId   String
+  submitter     User      @relation("ExpenseSubmitter", fields: [submitterId], references: [id])
+  description   String?
+  receiptUrl    String?
+  status        ExpenseStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Debt {
+  id            String    @id @default(cuid())
+  title         String
+  date          DateTime
+  amount        Decimal
+  description   String?
+  receiptUrl    String?
+  status        DebtStatus @default(PENDING)
+  submitterId   String
+  submitter     User      @relation("DebtSubmitter", fields: [submitterId], references: [id])
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model SalaryRule {
+  id            String    @id @default(cuid())
+  roleTarget    Role
+  baseSalary    Decimal   @default(0)
+  percentage    Decimal   @default(0) 
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ProfitSharingRule {
+  id            String    @id @default(cuid())
+  entityName    String    
+  percentage    Decimal
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Payroll {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  periodMonth   Int
+  periodYear    Int
+  baseSalary    Decimal
+  projectBonus  Decimal
+  totalSalary   Decimal
+  status        String    
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Invoice {
+  id            String    @id @default(cuid())
+  invoiceNumber String    @unique
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id])
+  amount        Decimal
+  dueDate       DateTime
+  status        InvoiceStatus @default(PENDING)
+  pdfUrl        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Quotation {
+  id            String    @id @default(cuid())
+  quoteNumber   String    @unique
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id])
+  amount        Decimal
+  pdfUrl        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model FinancialTarget {
+  id            String    @id @default(cuid())
+  period        String    
+  targetType    String    // REVENUE, PROFIT
+  targetAmount  Decimal
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  action        String    
+  entity        String    
+  entityId      String?
+  ipAddress     String?
+  details       String?   
+  createdAt     DateTime  @default(now())
+}
