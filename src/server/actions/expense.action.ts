@@ -2,7 +2,44 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { expenseSchema, ExpenseInput } from "../dto/expense.dto";
+
+// Kirim notifikasi ke web tiket (MST Workspace) tiap ada pengajuan modal baru.
+// Non-blocking: kalau gagal, jangan gagalkan pencatatan expense-nya.
+async function notifyPengajuanModal(expense: {
+  id: string;
+  title: string;
+  amount: unknown;
+  category: string;
+  submitterId: string;
+}) {
+  try {
+    const submitter = await prisma.user.findUnique({
+      where: { id: expense.submitterId },
+      select: { name: true },
+    });
+
+    const { error } = await supabaseAdmin
+      .from("pengajuan_modal_notifications")
+      .upsert(
+        {
+          expense_id: expense.id,
+          title: expense.title,
+          amount: Number(expense.amount),
+          submitter_name: submitter?.name ?? null,
+          category: expense.category,
+        },
+        { onConflict: "expense_id" }
+      );
+
+    if (error) {
+      console.error("[notifyPengajuanModal] Supabase error:", error.message);
+    }
+  } catch (error) {
+    console.error("[notifyPengajuanModal] Unexpected error:", error);
+  }
+}
 
 export async function getExpenses() {
   try {
@@ -70,7 +107,15 @@ export async function createExpense(input: ExpenseInput) {
         submitterId: validatedData.submittedById,
       },
     });
-    
+
+    await notifyPengajuanModal({
+      id: newExpense.id,
+      title: newExpense.title,
+      amount: newExpense.amount,
+      category: newExpense.category,
+      submitterId: newExpense.submitterId,
+    });
+
     revalidatePath("/expenses");
     revalidatePath("/dashboard");
     return { success: true, error: null };
