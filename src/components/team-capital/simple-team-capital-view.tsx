@@ -57,7 +57,7 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
 
   // Sync with active PIN session - pengajuan otomatis atas nama user yang sedang login
   React.useEffect(() => {
-    const saved = localStorage.getItem("mst_team_session");
+    const saved = sessionStorage.getItem("mst_team_session");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);

@@ -73,7 +73,7 @@ export function Sidebar() {
   const [session, setSession] = React.useState<{ personName?: string; email?: string } | null>(null);
 
   React.useEffect(() => {
-    const saved = localStorage.getItem("mst_team_session");
+    const saved = sessionStorage.getItem("mst_team_session");
     if (saved) {
       try {
         setSession(JSON.parse(saved));
@@ -83,7 +83,7 @@ export function Sidebar() {
 
   const handleLogout = () => {
     if (confirm("Keluar dari sesi tim ini?")) {
-      localStorage.removeItem("mst_team_session");
+      sessionStorage.removeItem("mst_team_session");
       window.location.href = "/login";
     }
   };

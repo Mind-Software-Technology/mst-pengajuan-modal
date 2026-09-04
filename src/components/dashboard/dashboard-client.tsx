@@ -61,7 +61,7 @@ export function DashboardClient({
 
   // Sync with active PIN session - pengajuan otomatis atas nama user yang sedang login
   useEffect(() => {
-    const saved = localStorage.getItem("mst_team_session");
+    const saved = sessionStorage.getItem("mst_team_session");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);

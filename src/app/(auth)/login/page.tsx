@@ -98,7 +98,7 @@ export default function PinLoginPage() {
   };
 
   const saveSessionAndGo = (user: { id: string; name: string; email: string; role: string; pin: string | null }) => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       "mst_team_session",
       JSON.stringify({
         userId: user.id,

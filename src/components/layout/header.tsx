@@ -9,7 +9,7 @@ export function Header() {
   const [session, setSession] = useState<{ personName?: string; email?: string } | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("mst_team_session");
+    const saved = sessionStorage.getItem("mst_team_session");
     if (saved) {
       try {
         setSession(JSON.parse(saved));
