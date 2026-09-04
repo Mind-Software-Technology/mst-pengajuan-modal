@@ -39,7 +39,7 @@ export function OverviewChart({ data }: OverviewChartProps) {
           tickFormatter={(value) => `Rp ${value / 1000000}M`}
         />
         <Tooltip 
-          formatter={(value: number) => [`Rp ${value.toLocaleString("id-ID")}`, ""]}
+          formatter={(value: any) => [`Rp ${Number(value || 0).toLocaleString("id-ID")}`, ""]}
           cursor={{ fill: "#f4f4f5" }}
           contentStyle={{ borderRadius: "8px", border: "1px solid #e4e4e7" }}
         />
