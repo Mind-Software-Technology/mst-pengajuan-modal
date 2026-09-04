@@ -44,7 +44,19 @@ async function notifyPengajuanModal(expense: {
 export async function getExpenses() {
   try {
     const expenses = await prisma.expense.findMany({
-      include: { project: true, submitter: true },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        date: true,
+        category: true,
+        status: true,
+        description: true,
+        receiptUrl: true,
+        submitter: {
+          select: { id: true, name: true, image: true, email: true },
+        },
+      },
       orderBy: { date: 'desc' }
     });
     return { data: expenses, error: null };

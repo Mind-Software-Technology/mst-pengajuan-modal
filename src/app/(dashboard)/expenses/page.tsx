@@ -12,8 +12,10 @@ export default async function ExpensesPage({
   const { tab } = await searchParams;
   const isHistory = tab === "history";
 
-  const { data: expenses } = await getExpenses();
-  const users = await prisma.user.findMany({ select: { id: true, name: true } });
+  const [{ data: expenses }, users] = await Promise.all([
+    getExpenses(),
+    prisma.user.findMany({ select: { id: true, name: true } }),
+  ]);
 
   const serializedExpenses = (expenses || []).map((e) => ({
     id: e.id,
