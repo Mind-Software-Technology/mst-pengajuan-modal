@@ -241,8 +241,8 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
 
       {/* 3. Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E5E5E8]">
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-72">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <div className="relative flex-1 min-w-[160px] sm:w-72 sm:flex-none">
             <Search className="h-4 w-4 text-[#8A8A91] absolute left-3 top-2.5" />
             <input
               type="text"
@@ -256,7 +256,7 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-[#D1D1D6] py-1.5 px-3 text-xs font-medium text-zinc-800 bg-white focus:outline-none focus:border-[#241B3A]"
+            className="flex-1 sm:flex-none min-w-[140px] rounded-md border border-[#D1D1D6] py-1.5 px-3 text-xs font-medium text-zinc-800 bg-white focus:outline-none focus:border-[#241B3A]"
           >
             <option value="ALL">{isHistory ? "Semua Riwayat" : "Semua Status"}</option>
             {!isHistory && <option value="PENDING">Menunggu Persetujuan</option>}

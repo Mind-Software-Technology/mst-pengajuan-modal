@@ -174,7 +174,7 @@ export default function PinLoginPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FA] p-4 font-sans text-zinc-900">
-      <div className="w-full max-w-md rounded-2xl border border-[#E5E5E8] bg-white p-7 sm:p-8 shadow-sm space-y-6">
+      <div className="w-full max-w-md rounded-2xl border border-[#E5E5E8] bg-white p-5 sm:p-8 shadow-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <div className="h-12 w-12 rounded-xl bg-[#241B3A] text-white mx-auto flex items-center justify-center shadow-xs">
@@ -211,7 +211,7 @@ export default function PinLoginPage() {
                 </button>
               </div>
 
-              <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2.5">
                 {pin.map((digit, idx) => (
                   <input
                     key={idx}
@@ -223,7 +223,7 @@ export default function PinLoginPage() {
                     disabled={isChecking}
                     onChange={(e) => handleDigitChange(idx, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(idx, e)}
-                    className={`h-12 w-11 sm:h-13 sm:w-12 rounded-lg border text-center text-lg font-bold transition-all focus:outline-none ${
+                    className={`h-11 w-9 sm:h-13 sm:w-12 rounded-lg border text-center text-lg font-bold transition-all focus:outline-none ${
                       digit
                         ? "border-[#241B3A] bg-[#241B3A]/5 text-[#241B3A]"
                         : "border-[#D1D1D6] bg-white focus:border-[#241B3A] focus:ring-1 focus:ring-[#241B3A]"

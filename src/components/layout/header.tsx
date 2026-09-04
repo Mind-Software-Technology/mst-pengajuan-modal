@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, ChevronRight, HelpCircle } from "lucide-react";
+import { Bell, ChevronRight, HelpCircle, Menu } from "lucide-react";
 import { getPendingNotifications } from "@/server/actions/expense.action";
 
 type NotificationItem = {
@@ -15,7 +15,7 @@ type NotificationItem = {
 
 const POLL_INTERVAL_MS = 15000;
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<{ personName?: string; email?: string } | null>(null);
@@ -64,19 +64,26 @@ export function Header() {
   const initials = session?.personName ? session.personName.slice(0, 2).toUpperCase() : "TM";
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E5E5E8] bg-white px-6 sm:px-8">
+    <header className="sticky top-0 z-20 flex h-16 flex-shrink-0 items-center justify-between gap-2 border-b border-[#E5E5E8] bg-white px-3 sm:px-6 lg:px-8">
       {/* Breadcrumb Area */}
-      <div className="flex items-center gap-2 text-xs text-[#6B6B73]">
-        <span className="hover:text-zinc-900 transition-colors">MIND Capital</span>
-        <ChevronRight className="h-3.5 w-3.5 text-[#8A8A91]" />
-        <span className="font-semibold text-[#241B3A]">{getBreadcrumbTitle()}</span>
+      <div className="flex items-center gap-2 text-xs text-[#6B6B73] min-w-0">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="lg:hidden h-8 w-8 flex-shrink-0 rounded-md border border-[#E5E5E8] flex items-center justify-center text-[#6B6B73] hover:text-[#241B3A] hover:bg-[#F3F3F5] transition-colors cursor-pointer"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+        <span className="hidden sm:inline hover:text-zinc-900 transition-colors">MIND Capital</span>
+        <ChevronRight className="hidden sm:inline h-3.5 w-3.5 text-[#8A8A91]" />
+        <span className="font-semibold text-[#241B3A] truncate">{getBreadcrumbTitle()}</span>
       </div>
 
       {/* User Profile / Status on the right */}
-      <div className="flex items-center gap-4">
-        <button 
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        <button
           title="Bantuan & Panduan"
-          className="h-8 w-8 rounded-md border border-[#E5E5E8] flex items-center justify-center text-[#6B6B73] hover:text-[#241B3A] hover:bg-[#F3F3F5] transition-colors"
+          className="hidden sm:flex h-8 w-8 rounded-md border border-[#E5E5E8] items-center justify-center text-[#6B6B73] hover:text-[#241B3A] hover:bg-[#F3F3F5] transition-colors"
         >
           <HelpCircle className="h-4 w-4" />
         </button>
@@ -95,7 +102,7 @@ export function Header() {
           )}
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-lg border border-[#E5E5E8] bg-white shadow-lg z-30 overflow-hidden">
+            <div className="fixed sm:absolute top-16 sm:top-auto left-3 right-3 sm:left-auto sm:right-0 sm:mt-2 sm:w-80 w-auto max-w-[calc(100vw-1.5rem)] rounded-lg border border-[#E5E5E8] bg-white shadow-lg z-30 overflow-hidden">
               <div className="px-3.5 py-2.5 border-b border-[#E5E5E8]">
                 <p className="text-xs font-bold text-zinc-900">Menunggu Persetujuan</p>
               </div>
