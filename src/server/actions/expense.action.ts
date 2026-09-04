@@ -53,6 +53,30 @@ export async function getExpenses() {
   }
 }
 
+export async function getPendingNotifications() {
+  try {
+    const pending = await prisma.expense.findMany({
+      where: { status: "PENDING" },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      include: { submitter: true },
+    });
+
+    return {
+      data: pending.map((e) => ({
+        id: e.id,
+        title: e.title,
+        amount: Number(e.amount),
+        submitterName: e.submitter.name,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      error: null,
+    };
+  } catch (error) {
+    return { data: [], error: "Gagal mengambil notifikasi" };
+  }
+}
+
 export async function getDashboardStats() {
   const [totalExpenseResult, approvedExpenseResult, pendingExpenseResult, recentExpenses, countApproved, countPending, countRejected] = await Promise.all([
     prisma.expense.aggregate({ _sum: { amount: true } }),

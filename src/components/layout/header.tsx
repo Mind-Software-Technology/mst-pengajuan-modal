@@ -1,12 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, ChevronRight, HelpCircle } from "lucide-react";
+import { getPendingNotifications } from "@/server/actions/expense.action";
+
+type NotificationItem = {
+  id: string;
+  title: string;
+  amount: number;
+  submitterName: string;
+  createdAt: string;
+};
+
+const POLL_INTERVAL_MS = 15000;
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [session, setSession] = useState<{ personName?: string; email?: string } | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("mst_team_session");
@@ -15,6 +30,26 @@ export function Header() {
         setSession(JSON.parse(saved));
       } catch (e) {}
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const res = await getPendingNotifications();
+      setNotifications(res.data);
+    };
+    fetchNotifications();
+    const id = setInterval(fetchNotifications, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const getBreadcrumbTitle = () => {
@@ -46,14 +81,49 @@ export function Header() {
           <HelpCircle className="h-4 w-4" />
         </button>
 
-        <div className="relative">
-          <button 
+        <div className="relative" ref={notifRef}>
+          <button
+            type="button"
             title="Notifikasi"
-            className="h-8 w-8 rounded-md border border-[#E5E5E8] flex items-center justify-center text-[#6B6B73] hover:text-[#241B3A] hover:bg-[#F3F3F5] transition-colors"
+            onClick={() => setShowNotifications((v) => !v)}
+            className="h-8 w-8 rounded-md border border-[#E5E5E8] flex items-center justify-center text-[#6B6B73] hover:text-[#241B3A] hover:bg-[#F3F3F5] transition-colors cursor-pointer"
           >
             <Bell className="h-4 w-4" />
           </button>
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[#241B3A]" />
+          {notifications.length > 0 && (
+            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-rose-500" />
+          )}
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 rounded-lg border border-[#E5E5E8] bg-white shadow-lg z-30 overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-[#E5E5E8]">
+                <p className="text-xs font-bold text-zinc-900">Menunggu Persetujuan</p>
+              </div>
+              <div className="max-h-72 overflow-y-auto divide-y divide-[#E5E5E8]">
+                {notifications.length === 0 ? (
+                  <p className="text-[11px] text-zinc-400 text-center py-6">Tidak ada pengajuan yang perlu ditinjau.</p>
+                ) : (
+                  notifications.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        router.push("/expenses");
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-[#F8F9FA] cursor-pointer"
+                    >
+                      <p className="text-xs font-semibold text-zinc-900 truncate">{n.title}</p>
+                      <div className="flex items-center justify-between text-[11px] text-[#6B6B73] mt-0.5">
+                        <span>{n.submitterName}</span>
+                        <span className="font-bold text-[#241B3A]">Rp {n.amount.toLocaleString("id-ID")}</span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="h-6 w-px bg-[#E5E5E8]" />
