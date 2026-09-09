@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userSchema, UserInput } from "@/server/dto/user.dto";
@@ -45,6 +45,19 @@ export function UserFormDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = setExternalOpen || setInternalOpen;
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("mst_team_session");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCurrentUserId(parsed.userId || "");
+        setIsSuperAdmin(parsed.role === "SUPER_ADMIN");
+      } catch (e) {}
+    }
+  }, []);
   
   const form = useForm<UserInput>({
     resolver: zodResolver(userSchema) as any,
@@ -52,9 +65,22 @@ export function UserFormDialog({
       name: user?.name || "",
       email: user?.email || "",
       role: user?.role || "TEAM_MEMBER",
-      password: "", // We might not want to edit password here simply
+      password: "",
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: user?.name || "",
+        email: user?.email || "",
+        role: user?.role || "TEAM_MEMBER",
+        password: "",
+      });
+    }
+  }, [open, user, form]);
+
+  const isSelf = user && currentUserId === user.id;
 
   async function onSubmit(data: UserInput) {
     const payload = { ...data };
@@ -62,12 +88,25 @@ export function UserFormDialog({
       delete payload.password;
     }
     const res = user
-      ? await updateUser(user.id, payload)
+      ? await updateUser(user.id, payload, currentUserId)
       : await createUser(payload);
       
     if (res.error) {
       alert(res.error);
     } else {
+      // Jika memperbarui profil sendiri, perbarui data di sessionStorage
+      if (isSelf && res.data) {
+        const saved = sessionStorage.getItem("mst_team_session");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            parsed.personName = res.data.name;
+            parsed.email = res.data.email;
+            sessionStorage.setItem("mst_team_session", JSON.stringify(parsed));
+            window.dispatchEvent(new Event("mst_session_updated"));
+          } catch (e) {}
+        }
+      }
       if (!user) form.reset();
       setOpen(false);
     }
@@ -84,7 +123,9 @@ export function UserFormDialog({
       )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{user ? "Edit Karyawan / Pengguna" : "Tambah Karyawan / Pengguna"}</DialogTitle>
+          <DialogTitle>
+            {user ? (isSelf ? "Edit Profil Saya" : "Edit Karyawan / Pengguna") : "Tambah Karyawan / Pengguna"}
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -119,8 +160,17 @@ export function UserFormDialog({
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Jabatan (Role)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel className="flex items-center justify-between">
+                    <span>Jabatan (Role)</span>
+                    {!isSuperAdmin && user && (
+                      <span className="text-[10px] text-zinc-400 font-normal">Dikelola Super Admin</span>
+                    )}
+                  </FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                    disabled={!isSuperAdmin && !!user}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih Role">
@@ -148,16 +198,16 @@ export function UserFormDialog({
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password (Opsional)</FormLabel>
+                  <FormLabel>Password Baru (Opsional)</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input type="password" placeholder={user ? "Kosongkan jika tidak diubah" : "Minimal 6 karakter"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Menyimpan..." : "Simpan Pengguna"}
+              {form.formState.isSubmitting ? "Menyimpan..." : (isSelf ? "Simpan Perubahan Profil" : "Simpan Pengguna")}
             </Button>
           </form>
         </Form>

@@ -37,28 +37,71 @@ export async function createUser(input: UserInput) {
   }
 }
 
-export async function updateUser(id: string, input: UserInput) {
+export async function updateUser(id: string, input: UserInput, requesterId: string) {
   try {
+    if (!requesterId) {
+      return { data: null, error: "Sesi tidak valid. Silakan login ulang." };
+    }
+
+    // Hanya diri sendiri yang bisa mengedit profil
+    if (requesterId !== id) {
+      return { data: null, error: "Akses ditolak. Anda hanya dapat mengedit profil diri sendiri." };
+    }
+
     const validatedData = userSchema.parse(input);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+
+    if (!existingUser) {
+      return { data: null, error: "Pengguna tidak ditemukan." };
+    }
+
+    // Hanya SUPER_ADMIN yang berhak mengubah role; user biasa tidak dapat menaikkan hak aksesnya sendiri
+    const allowedRole = existingUser.role === "SUPER_ADMIN" ? validatedData.role : existingUser.role;
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         name: validatedData.name,
         email: validatedData.email,
-        role: validatedData.role,
+        role: allowedRole,
+        ...(validatedData.password ? { password: validatedData.password } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
       },
     });
     
     revalidatePath("/settings");
     revalidatePath("/expenses");
+    revalidatePath("/dashboard");
     return { data: updatedUser, error: null };
-  } catch (error) {
-    return { data: null, error: "Gagal memperbarui pengguna" };
+  } catch (error: any) {
+    return { data: null, error: error?.message || "Gagal memperbarui pengguna" };
   }
 }
 
-export async function deleteUser(id: string) {
+export async function deleteUser(id: string, requesterId: string) {
   try {
+    if (!requesterId) {
+      return { success: false, error: "Sesi tidak valid. Silakan login ulang." };
+    }
+
+    const requester = await prisma.user.findUnique({
+      where: { id: requesterId },
+      select: { role: true },
+    });
+
+    if (!requester || requester.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Akses ditolak. Hanya Super Admin yang dapat menghapus data pengguna." };
+    }
+
     await prisma.user.delete({
       where: { id },
     });

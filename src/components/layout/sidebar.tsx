@@ -14,8 +14,10 @@ import {
   Settings,
   LogOut,
   Building2,
-  X
+  X,
+  Pencil
 } from "lucide-react";
+import { UserFormDialog } from "@/components/users/user-form";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -77,15 +79,21 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-  const [session, setSession] = React.useState<{ personName?: string; email?: string } | null>(null);
+  const [session, setSession] = React.useState<{ userId?: string; personName?: string; email?: string; role?: string } | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const saved = sessionStorage.getItem("mst_team_session");
-    if (saved) {
-      try {
-        setSession(JSON.parse(saved));
-      } catch (e) {}
-    }
+    const updateSession = () => {
+      const saved = sessionStorage.getItem("mst_team_session");
+      if (saved) {
+        try {
+          setSession(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+    updateSession();
+    window.addEventListener("mst_session_updated", updateSession);
+    return () => window.removeEventListener("mst_session_updated", updateSession);
   }, []);
 
   const handleLogout = () => {
@@ -143,18 +151,31 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
         {/* User Profile & Logout Bottom Area */}
         <div className="border-t border-white/10 p-3 space-y-2">
-          <div className="flex items-center gap-3 px-2 py-2 rounded-md bg-white/5 border border-white/5">
-            <div className="h-8 w-8 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-              {session?.personName ? session.personName.slice(0, 2).toUpperCase() : "MST"}
+          <div className="flex items-center justify-between gap-2 px-2 py-2 rounded-md bg-white/5 border border-white/5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="h-8 w-8 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                {session?.personName ? session.personName.slice(0, 2).toUpperCase() : "MST"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-white truncate">
+                  {session?.personName || "Anggota Tim"}
+                </p>
+                <p className="text-[10px] text-[#8A8A91] truncate">
+                  {session?.email || "Sesi PIN Aktif"}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-white truncate">
-                {session?.personName || "Anggota Tim"}
-              </p>
-              <p className="text-[10px] text-[#8A8A91] truncate">
-                {session?.email || "Sesi PIN Aktif"}
-              </p>
-            </div>
+
+            {session?.userId && (
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen(true)}
+                title="Edit Profil Saya"
+                className="h-7 w-7 rounded-md bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           <button
@@ -165,6 +186,20 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             <span>Ganti PIN / Logout</span>
           </button>
         </div>
+
+        {session?.userId && (
+          <UserFormDialog
+            user={{
+              id: session.userId,
+              name: session.personName || "",
+              email: session.email || "",
+              role: session.role || "TEAM_MEMBER",
+            }}
+            open={isProfileOpen}
+            onOpenChange={setIsProfileOpen}
+            trigger={null}
+          />
+        )}
       </aside>
     </>
   );

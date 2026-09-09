@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, ChevronRight, HelpCircle, Menu } from "lucide-react";
+import { Bell, ChevronRight, HelpCircle, Menu, Pencil } from "lucide-react";
 import { getPendingNotifications } from "@/server/actions/expense.action";
+import { UserFormDialog } from "@/components/users/user-form";
 
 type NotificationItem = {
   id: string;
@@ -18,18 +19,24 @@ const POLL_INTERVAL_MS = 15000;
 export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [session, setSession] = useState<{ personName?: string; email?: string } | null>(null);
+  const [session, setSession] = useState<{ userId?: string; personName?: string; email?: string; role?: string } | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("mst_team_session");
-    if (saved) {
-      try {
-        setSession(JSON.parse(saved));
-      } catch (e) {}
-    }
+    const updateSession = () => {
+      const saved = sessionStorage.getItem("mst_team_session");
+      if (saved) {
+        try {
+          setSession(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+    updateSession();
+    window.addEventListener("mst_session_updated", updateSession);
+    return () => window.removeEventListener("mst_session_updated", updateSession);
   }, []);
 
   useEffect(() => {
@@ -136,15 +143,39 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         <div className="h-6 w-px bg-[#E5E5E8]" />
 
         {/* Dynamic Team User Profile Box */}
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setIsProfileOpen(true)}
+          title="Klik untuk mengedit profil Anda"
+          className="flex items-center gap-3 p-1.5 -mr-1.5 rounded-xl hover:bg-zinc-100 transition-colors text-left cursor-pointer group"
+        >
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-zinc-900 leading-tight">{displayName}</p>
+            <p className="text-xs font-bold text-zinc-900 leading-tight group-hover:text-indigo-600 transition-colors">{displayName}</p>
             <p className="text-[10px] text-[#6B6B73] leading-tight">{displayTeam}</p>
           </div>
-          <div className="h-8 w-8 rounded-full bg-[#241B3A] text-white flex items-center justify-center text-xs font-bold ring-1 ring-[#241B3A]/20">
-            {initials}
+          <div className="relative">
+            <div className="h-8 w-8 rounded-full bg-[#241B3A] group-hover:bg-[#342754] text-white flex items-center justify-center text-xs font-bold ring-1 ring-[#241B3A]/20 transition-colors">
+              {initials}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-xs border border-zinc-200 flex items-center justify-center text-zinc-500">
+              <Pencil className="h-2 w-2" />
+            </div>
           </div>
-        </div>
+        </button>
+
+        {session?.userId && (
+          <UserFormDialog
+            user={{
+              id: session.userId,
+              name: session.personName || "",
+              email: session.email || "",
+              role: session.role || "TEAM_MEMBER",
+            }}
+            open={isProfileOpen}
+            onOpenChange={setIsProfileOpen}
+            trigger={null}
+          />
+        )}
       </div>
     </header>
   );
