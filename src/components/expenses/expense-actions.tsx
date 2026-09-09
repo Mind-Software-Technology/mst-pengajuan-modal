@@ -16,6 +16,7 @@ export function ExpenseActions({ expense, projects, users }: { expense: any, pro
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
+  const [canApprove, setCanApprove] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("mst_team_session");
@@ -23,6 +24,7 @@ export function ExpenseActions({ expense, projects, users }: { expense: any, pro
       try {
         const parsed = JSON.parse(saved);
         setCurrentUserId(parsed.userId || "");
+        setCanApprove(parsed.role === "SUPER_ADMIN");
       } catch (e) {}
     }
   }, []);
@@ -30,7 +32,7 @@ export function ExpenseActions({ expense, projects, users }: { expense: any, pro
   async function handleDelete() {
     if (!confirm("Yakin ingin menghapus pengajuan ini?")) return;
     setIsDeleting(true);
-    const res = await deleteExpense(expense.id);
+    const res = await deleteExpense(expense.id, currentUserId);
     setIsDeleting(false);
     if (res.error) {
       alert(res.error);
@@ -56,7 +58,7 @@ export function ExpenseActions({ expense, projects, users }: { expense: any, pro
           <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" /> Edit
           </DropdownMenuItem>
-          {expense.status === "PENDING" && (
+          {expense.status === "PENDING" && canApprove && (
             <>
               <DropdownMenuItem onClick={() => handleUpdateStatus("APPROVED_FINANCE")} className="text-green-600 focus:text-green-600">
                 <CheckCircle2 className="mr-2 h-4 w-4" /> Setujui
@@ -66,9 +68,11 @@ export function ExpenseActions({ expense, projects, users }: { expense: any, pro
               </DropdownMenuItem>
             </>
           )}
-          <DropdownMenuItem onClick={handleDelete} disabled={isDeleting} className="text-red-600 focus:text-red-600">
-            <Trash2 className="mr-2 h-4 w-4" /> Hapus
-          </DropdownMenuItem>
+          {canApprove && (
+            <DropdownMenuItem onClick={handleDelete} disabled={isDeleting} className="text-red-600 focus:text-red-600">
+              <Trash2 className="mr-2 h-4 w-4" /> Hapus
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

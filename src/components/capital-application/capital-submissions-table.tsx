@@ -87,7 +87,7 @@ export function CapitalSubmissionsTable({
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus data pengajuan modal ini?")) return;
     setLoadingId(id);
-    const res = await deleteExpense(id);
+    const res = await deleteExpense(id, currentUserId);
     setLoadingId(null);
     if (res.error) alert(res.error);
   };
@@ -225,15 +225,17 @@ export function CapitalSubmissionsTable({
                             )
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.id)}
-                            disabled={loadingId === item.id}
-                            title="Hapus"
-                            className="p-1.5 rounded border border-[#E5E5E8] text-zinc-400 hover:text-rose-600 hover:border-rose-200 cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {canApprove && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item.id)}
+                              disabled={loadingId === item.id}
+                              title="Hapus"
+                              className="p-1.5 rounded border border-[#E5E5E8] text-zinc-400 hover:text-rose-600 hover:border-rose-200 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

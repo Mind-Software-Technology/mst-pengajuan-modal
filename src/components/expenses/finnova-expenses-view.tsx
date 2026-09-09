@@ -62,6 +62,7 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
   const [actionLoading, setActionLoading] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
+  const [canApprove, setCanApprove] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("mst_team_session");
@@ -69,6 +70,7 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
       try {
         const parsed = JSON.parse(saved);
         setCurrentUserId(parsed.userId || "");
+        setCanApprove(parsed.role === "SUPER_ADMIN");
       } catch (e) {}
     }
   }, []);
@@ -149,7 +151,7 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin ingin menghapus data pengajuan modal ini?")) return;
     setActionLoading(true);
-    const res = await deleteExpense(id);
+    const res = await deleteExpense(id, currentUserId);
     setActionLoading(false);
     if (res.error) {
       alert(res.error);
@@ -700,14 +702,16 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button
-                      onClick={() => handleDelete(selectedItem.id)}
-                      disabled={actionLoading}
-                      title="Hapus"
-                      className="h-10 w-10 rounded-full bg-white/10 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {canApprove && (
+                      <button
+                        onClick={() => handleDelete(selectedItem.id)}
+                        disabled={actionLoading}
+                        title="Hapus"
+                        className="h-10 w-10 rounded-full bg-white/10 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
 
                     <button
                       title="Copy link"
@@ -725,22 +729,28 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
                     </button>
 
                     {selectedItem.status === "PENDING" ? (
-                      <>
-                        <button
-                          onClick={() => handleUpdateStatus(selectedItem.id, "REJECTED")}
-                          disabled={actionLoading}
-                          className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-rose-600 text-white font-bold text-xs transition-colors cursor-pointer"
-                        >
-                          Tolak
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(selectedItem.id, "APPROVED_FINANCE")}
-                          disabled={actionLoading}
-                          className="px-6 py-2.5 rounded-full bg-white hover:bg-zinc-100 text-zinc-950 font-black text-xs shadow-xl transition-all hover:scale-105 cursor-pointer"
-                        >
-                          Payout now
-                        </button>
-                      </>
+                      canApprove ? (
+                        <>
+                          <button
+                            onClick={() => handleUpdateStatus(selectedItem.id, "REJECTED")}
+                            disabled={actionLoading}
+                            className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-rose-600 text-white font-bold text-xs transition-colors cursor-pointer"
+                          >
+                            Tolak
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(selectedItem.id, "APPROVED_FINANCE")}
+                            disabled={actionLoading}
+                            className="px-6 py-2.5 rounded-full bg-white hover:bg-zinc-100 text-zinc-950 font-black text-xs shadow-xl transition-all hover:scale-105 cursor-pointer"
+                          >
+                            Payout now
+                          </button>
+                        </>
+                      ) : (
+                        <div className="px-5 py-2.5 rounded-full bg-white/15 text-white/90 font-medium text-xs border border-white/20">
+                          Menunggu Persetujuan Super Admin
+                        </div>
+                      )
                     ) : selectedItem.status === "APPROVED_FINANCE" || selectedItem.status === "APPROVED_FOUNDER" ? (
                       <div className="px-5 py-2.5 rounded-full bg-white text-emerald-700 font-black text-xs flex items-center gap-1.5 shadow-md">
                         <Check className="h-4 w-4" />

@@ -186,8 +186,25 @@ export async function updateExpense(id: string, input: ExpenseInput) {
   }
 }
 
-export async function deleteExpense(id: string) {
+export async function deleteExpense(id: string, requesterId: string) {
   try {
+    if (!requesterId) {
+      return { success: false, error: "Sesi tidak valid. Silakan login ulang." };
+    }
+
+    const requester = await prisma.user.findUnique({
+      where: { id: requesterId },
+      select: { role: true },
+    });
+
+    if (!requester) {
+      return { success: false, error: "Pengguna tidak ditemukan." };
+    }
+
+    if (requester.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Akses ditolak. Hanya Super Admin yang dapat menghapus pengajuan." };
+    }
+
     await prisma.expense.delete({
       where: { id },
     });

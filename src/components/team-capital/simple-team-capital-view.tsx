@@ -169,7 +169,7 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus pengajuan ini?")) return;
     setActionLoadingId(id);
-    const res = await deleteExpense(id);
+    const res = await deleteExpense(id, currentUserId);
     setActionLoadingId(null);
     if (res.error) alert(res.error);
   };
@@ -389,15 +389,17 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
                             <Eye className="h-3.5 w-3.5" />
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.id)}
-                            disabled={actionLoadingId === item.id}
-                            title="Hapus"
-                            className="p-1 rounded text-zinc-400 hover:text-rose-600 cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {canApprove && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item.id)}
+                              disabled={actionLoadingId === item.id}
+                              title="Hapus"
+                              className="p-1 rounded text-zinc-400 hover:text-rose-600 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
