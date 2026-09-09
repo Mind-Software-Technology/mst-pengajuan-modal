@@ -38,6 +38,20 @@ export function CapitalSubmissionsTable({
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedDetail, setSelectedDetail] = useState<ExpenseItem | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  // Baca userId dan role dari sessionStorage (sistem PIN)
+  const [currentUserId, setCurrentUserId] = React.useState("");
+  const [canApprove, setCanApprove] = React.useState(false);
+
+  React.useEffect(() => {
+    const saved = sessionStorage.getItem("mst_team_session");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCurrentUserId(parsed.userId || "");
+        setCanApprove(parsed.role === "SUPER_ADMIN");
+      } catch (e) {}
+    }
+  }, []);
 
   const filtered = expenses.filter((item) => {
     const matchSearch = 
@@ -59,7 +73,7 @@ export function CapitalSubmissionsTable({
     if (!confirm(`Apakah Anda yakin ingin ${isApprove ? "menyetujui dan mencairkan" : "menolak"} pengajuan ini?`)) return;
 
     setLoadingId(id);
-    const res = await updateExpenseStatus(id, status);
+    const res = await updateExpenseStatus(id, status, currentUserId);
     setLoadingId(null);
     if (res.error) {
       alert(res.error);
@@ -185,26 +199,30 @@ export function CapitalSubmissionsTable({
                           </button>
 
                           {isPending && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleStatusChange(item.id, "APPROVED_FINANCE")}
-                                disabled={loadingId === item.id}
-                                title="Setujui Modal"
-                                className="p-1.5 rounded bg-[#241B3A] text-white hover:bg-[#1B142C] cursor-pointer"
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleStatusChange(item.id, "REJECTED")}
-                                disabled={loadingId === item.id}
-                                title="Tolak"
-                                className="p-1.5 rounded border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer"
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                              </button>
-                            </>
+                            canApprove ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusChange(item.id, "APPROVED_FINANCE")}
+                                  disabled={loadingId === item.id}
+                                  title="Setujui Modal"
+                                  className="p-1.5 rounded bg-[#241B3A] text-white hover:bg-[#1B142C] cursor-pointer"
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusChange(item.id, "REJECTED")}
+                                  disabled={loadingId === item.id}
+                                  title="Tolak"
+                                  className="p-1.5 rounded border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer"
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-[#8A8A91] px-1">🔒</span>
+                            )
                           )}
 
                           <button
@@ -280,20 +298,26 @@ export function CapitalSubmissionsTable({
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5E8]">
               {selectedDetail.status === "PENDING" && (
-                <>
-                  <button
-                    onClick={() => handleStatusChange(selectedDetail.id, "REJECTED")}
-                    className="px-4 py-2 rounded-md border border-rose-300 text-xs font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer"
-                  >
-                    Tolak
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange(selectedDetail.id, "APPROVED_FINANCE")}
-                    className="px-4 py-2 rounded-md bg-[#241B3A] text-xs font-semibold text-white hover:bg-[#1B142C] cursor-pointer"
-                  >
-                    Setujui & Cairkan
-                  </button>
-                </>
+                canApprove ? (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange(selectedDetail.id, "REJECTED")}
+                      className="px-4 py-2 rounded-md border border-rose-300 text-xs font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer"
+                    >
+                      Tolak
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(selectedDetail.id, "APPROVED_FINANCE")}
+                      className="px-4 py-2 rounded-md bg-[#241B3A] text-xs font-semibold text-white hover:bg-[#1B142C] cursor-pointer"
+                    >
+                      Setujui & Cairkan
+                    </button>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold text-[#8A8A91] bg-[#F3F3F5] border border-[#E5E5E8]">
+                    🔒 Hanya Super Admin
+                  </span>
+                )
               )}
               <button
                 onClick={() => setSelectedDetail(null)}

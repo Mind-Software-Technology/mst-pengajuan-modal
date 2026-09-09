@@ -35,16 +35,18 @@ interface SimpleTeamCapitalViewProps {
   initialExpenses: ExpenseItem[];
   users: { id: string; name: string }[];
   isHistory?: boolean;
-  canApprove?: boolean;
 }
 
-export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = false, canApprove = false }: SimpleTeamCapitalViewProps) {
+export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = false }: SimpleTeamCapitalViewProps) {
   const [showModalForm, setShowModalForm] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedItem, setSelectedItem] = useState<ExpenseItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  // Ambil userId dan role dari sessionStorage (sistem PIN)
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [canApprove, setCanApprove] = useState(false);
 
   // Form State
   const [form, setForm] = useState({
@@ -56,7 +58,7 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
     description: "",
   });
 
-  // Sync with active PIN session - pengajuan otomatis atas nama user yang sedang login
+  // Sync dengan session PIN aktif
   React.useEffect(() => {
     const saved = sessionStorage.getItem("mst_team_session");
     if (saved) {
@@ -67,6 +69,9 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
           submitterId: parsed.userId || prev.submitterId,
           submitterName: parsed.personName || prev.submitterName,
         }));
+        // Set userId dan cek apakah SUPER_ADMIN
+        setCurrentUserId(parsed.userId || "");
+        setCanApprove(parsed.role === "SUPER_ADMIN");
       } catch (e) {}
     }
   }, []);
@@ -150,7 +155,7 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
     if (!confirm(`Yakin ingin ${isApprove ? "menyetujui & mencairkan" : "menolak"} pengajuan ini?`)) return;
 
     setActionLoadingId(id);
-    const res = await updateExpenseStatus(id, newStatus);
+    const res = await updateExpenseStatus(id, newStatus, currentUserId);
     setActionLoadingId(null);
     if (res.error) {
       alert(res.error);
