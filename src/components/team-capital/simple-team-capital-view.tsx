@@ -35,9 +35,10 @@ interface SimpleTeamCapitalViewProps {
   initialExpenses: ExpenseItem[];
   users: { id: string; name: string }[];
   isHistory?: boolean;
+  canApprove?: boolean;
 }
 
-export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = false }: SimpleTeamCapitalViewProps) {
+export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = false, canApprove = false }: SimpleTeamCapitalViewProps) {
   const [showModalForm, setShowModalForm] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -339,29 +340,35 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Tombol yang megang uang: Setujui & Tolak */}
+                          {/* Tombol Setujui & Tolak — hanya tampil untuk SUPER_ADMIN */}
                           {isPending ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleStatusUpdate(item.id, "APPROVED_FINANCE")}
-                                disabled={actionLoadingId === item.id}
-                                title="Setujui Modal (Oleh Pemegang Kas)"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#241B3A] hover:bg-[#1B142C] text-white text-[11px] font-semibold cursor-pointer shadow-xs"
-                              >
-                                <Check className="h-3 w-3" />
-                                <span>Setujui</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleStatusUpdate(item.id, "REJECTED")}
-                                disabled={actionLoadingId === item.id}
-                                title="Tolak Pengajuan"
-                                className="px-2 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-semibold cursor-pointer"
-                              >
-                                Tolak
-                              </button>
-                            </>
+                            canApprove ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusUpdate(item.id, "APPROVED_FINANCE")}
+                                  disabled={actionLoadingId === item.id}
+                                  title="Setujui Modal (Oleh Super Admin)"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#241B3A] hover:bg-[#1B142C] text-white text-[11px] font-semibold cursor-pointer shadow-xs"
+                                >
+                                  <Check className="h-3 w-3" />
+                                  <span>Setujui</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusUpdate(item.id, "REJECTED")}
+                                  disabled={actionLoadingId === item.id}
+                                  title="Tolak Pengajuan"
+                                  className="px-2 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-[11px] font-semibold cursor-pointer"
+                                >
+                                  Tolak
+                                </button>
+                              </>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-[#8A8A91] bg-[#F3F3F5] border border-[#E5E5E8]">
+                                🔒 Menunggu Super Admin
+                              </span>
+                            )
                           ) : (
                             <span className="text-[11px] text-[#8A8A91] italic pr-2">
                               {isApproved ? "Sudah Dicairkan" : "Dibatalkan"}
@@ -556,20 +563,26 @@ export function SimpleTeamCapitalView({ initialExpenses, users, isHistory = fals
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5E8]">
               {selectedItem.status === "PENDING" && (
-                <>
-                  <button
-                    onClick={() => handleStatusUpdate(selectedItem.id, "REJECTED")}
-                    className="px-3 py-1.5 rounded-md border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer"
-                  >
-                    Tolak
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate(selectedItem.id, "APPROVED_FINANCE")}
-                    className="px-4 py-1.5 rounded-md bg-[#241B3A] text-xs font-semibold text-white hover:bg-[#1B142C] cursor-pointer"
-                  >
-                    Setujui & Cairkan
-                  </button>
-                </>
+                canApprove ? (
+                  <>
+                    <button
+                      onClick={() => handleStatusUpdate(selectedItem.id, "REJECTED")}
+                      className="px-3 py-1.5 rounded-md border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer"
+                    >
+                      Tolak
+                    </button>
+                    <button
+                      onClick={() => handleStatusUpdate(selectedItem.id, "APPROVED_FINANCE")}
+                      className="px-4 py-1.5 rounded-md bg-[#241B3A] text-xs font-semibold text-white hover:bg-[#1B142C] cursor-pointer"
+                    >
+                      Setujui & Cairkan
+                    </button>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold text-[#8A8A91] bg-[#F3F3F5] border border-[#E5E5E8]">
+                    🔒 Persetujuan hanya untuk Super Admin
+                  </span>
+                )
               )}
               <button
                 onClick={() => setSelectedItem(null)}

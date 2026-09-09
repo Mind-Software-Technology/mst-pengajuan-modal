@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { auth } from "@/lib/auth";
 import { expenseSchema, ExpenseInput } from "../dto/expense.dto";
 
 // Kirim notifikasi ke web tiket (MST Workspace) tiap ada pengajuan modal baru.
@@ -201,6 +203,23 @@ export async function deleteExpense(id: string) {
 
 export async function updateExpenseStatus(id: string, status: "PENDING" | "APPROVED_FINANCE" | "APPROVED_FOUNDER" | "REJECTED") {
   try {
+    // Ambil session user saat ini dari better-auth
+    const session = await auth.api.getSession({ headers: await headers() });
+
+    if (!session?.user?.id) {
+      return { success: false, error: "Sesi tidak valid. Silakan login ulang." };
+    }
+
+    // Ambil data user beserta role-nya dari database
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (currentUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Akses ditolak. Hanya Super Admin yang dapat menyetujui atau menolak pengajuan." };
+    }
+
     await prisma.expense.update({
       where: { id },
       data: { status },

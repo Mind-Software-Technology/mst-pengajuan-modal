@@ -1,5 +1,7 @@
 import { getExpenses } from "@/server/actions/expense.action";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { SimpleTeamCapitalView } from "@/components/team-capital/simple-team-capital-view";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +14,21 @@ export default async function ExpensesPage({
   const { tab } = await searchParams;
   const isHistory = tab === "history";
 
-  const [{ data: expenses }, users] = await Promise.all([
+  const [{ data: expenses }, users, session] = await Promise.all([
     getExpenses(),
     prisma.user.findMany({ select: { id: true, name: true } }),
+    auth.api.getSession({ headers: await headers() }),
   ]);
+
+  // Cek role user yang sedang login — hanya SUPER_ADMIN yang boleh approve
+  let canApprove = false;
+  if (session?.user?.id) {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+    canApprove = currentUser?.role === "SUPER_ADMIN";
+  }
 
   const serializedExpenses = (expenses || []).map((e) => ({
     id: e.id,
@@ -39,6 +52,7 @@ export default async function ExpensesPage({
       initialExpenses={serializedExpenses as any}
       users={users}
       isHistory={isHistory}
+      canApprove={canApprove}
     />
   );
 }
