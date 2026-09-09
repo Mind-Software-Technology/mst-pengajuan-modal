@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { 
   ArrowLeft, 
@@ -61,6 +61,17 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("mst_team_session");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCurrentUserId(parsed.userId || "");
+      } catch (e) {}
+    }
+  }, []);
 
   // Filtered expenses
   const filteredExpenses = useMemo(() => {
@@ -128,7 +139,7 @@ export function FinnovaExpensesView({ initialExpenses, users }: FinnovaExpensesV
     if (!confirm(`Yakin ingin ${isApprove ? "menyetujui & mencairkan" : "menolak"} pengajuan ini?`)) return;
 
     setActionLoading(true);
-    const res = await updateExpenseStatus(id, status);
+    const res = await updateExpenseStatus(id, status, currentUserId);
     setActionLoading(false);
     if (res.error) {
       alert(res.error);

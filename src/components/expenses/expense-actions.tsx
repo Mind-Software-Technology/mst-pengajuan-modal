@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { deleteExpense, updateExpenseStatus } from "@/server/actions/expense.action";
 import { Button } from "@/components/ui/button";
 import { ExpenseFormDialog } from "./expense-form";
@@ -15,6 +15,17 @@ import {
 export function ExpenseActions({ expense, projects, users }: { expense: any, projects: any[], users: any[] }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("mst_team_session");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCurrentUserId(parsed.userId || "");
+      } catch (e) {}
+    }
+  }, []);
 
   async function handleDelete() {
     if (!confirm("Yakin ingin menghapus pengajuan ini?")) return;
@@ -28,7 +39,7 @@ export function ExpenseActions({ expense, projects, users }: { expense: any, pro
 
   async function handleUpdateStatus(status: "APPROVED_FINANCE" | "REJECTED") {
     if (!confirm(`Yakin ingin ${status === "APPROVED_FINANCE" ? "menyetujui" : "menolak"} pengajuan ini?`)) return;
-    const res = await updateExpenseStatus(expense.id, status);
+    const res = await updateExpenseStatus(expense.id, status, currentUserId);
     if (res.error) {
       alert(res.error);
     }
